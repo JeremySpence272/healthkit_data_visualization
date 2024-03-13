@@ -1,16 +1,12 @@
-/// Two record types: Basal Energy & Active Energy
-// Create energy database
-// 3 Tables: basal records, active records, daily records
-// Basal & Active: need - source name, creation date, value
-// Daily - apple watch (bool) - basal - active - total
-
 class DailyEnergy {
 	constructor(date, total, active, basal) {
 		this.date = date;
-		this.is_watch = date > "2023-10-14";
 		this.basal = basal;
 		this.active = active;
-		this.total = total;
+	}
+
+	getTotal() {
+		return this.basal + this.active;
 	}
 }
 
@@ -18,7 +14,7 @@ const fs = require("fs");
 const readline = require("readline");
 const sqlite3 = require("sqlite3").verbose();
 const db = new sqlite3.Database(
-	"./energy.db",
+	"./data/database.db",
 	sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
 	(err) => {
 		if (err) {
@@ -29,19 +25,29 @@ const db = new sqlite3.Database(
 );
 
 const totalsQuery = `
-SELECT SUBSTR(date, 1, 10) AS date, 
-        SUM(CAST(value AS FLOAT)) AS total, SUM(CASE WHEN type = 'Active' THEN CAST(value AS FLOAT) ELSE 0 END) AS activeTotal, SUM(CASE WHEN type = 'Basal' THEN CAST(value AS FLOAT) ELSE 0 END) AS basalTotal
+SELECT 
+    SUBSTR(endDate, 1, 10) AS date, 
+    SUM(CASE 
+            WHEN type = 'HKQuantityTypeIdentifierActiveEnergyBurned' 
+            THEN CAST(value AS FLOAT) 
+            ELSE 0 
+        END) AS activeTotal, 
+    SUM(CASE 
+            WHEN type = 'HKQuantityTypeIdentifierBasalEnergyBurned' 
+            THEN CAST(value AS FLOAT) 
+            ELSE 0 
+        END) AS basalTotal
 FROM all_records
-GROUP BY SUBSTR(date, 1, 10);;
+GROUP BY SUBSTR(endDate, 1, 10);
+
 
 `;
 
 function fillDailyTable(dailyData) {
 	db.run(
-		`CREATE TABLE IF NOT EXISTS daily_energy_records (
+		`CREATE TABLE IF NOT EXISTS daily_energy (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT,
-      is_watch INTEGER,
       basal TEXT,
       active TEXT,
       total TEXT
@@ -56,15 +62,13 @@ function fillDailyTable(dailyData) {
 	);
 
 	for (let record of dailyData) {
-		const watch = record.is_watch ? 1 : 0;
-
 		// Insert the record into the SQLite database
-		const insert = `INSERT INTO daily_energy_records (date, is_watch, basal, active, total)
-    VALUES (?, ?, ?, ?, ?)`;
+		const insert = `INSERT INTO daily_energy (date, basal, active, total)
+    VALUES (?, ?, ?, ?)`;
 
 		db.run(
 			insert,
-			[record.date, watch, record.basal, record.active, record.total],
+			[record.date, record.basal, record.active, record.getTotal()],
 			(err) => {
 				if (err) {
 					console.error("Error inserting record into database:", err.message);

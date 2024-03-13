@@ -1,26 +1,19 @@
-const fs = require("fs");
-const readline = require("readline");
+const sqlite3 = require("sqlite3").verbose();
 
-const jsonFilePath = "./data/data.json";
+// Open the SQLite database
+const db = new sqlite3.Database("./data/database.db", sqlite3.OPEN_READWRITE);
 
-// Create a read stream and a readline interface
-const readStream = fs.createReadStream(jsonFilePath);
-const rl = readline.createInterface({
-	input: readStream,
-	crlfDelay: Infinity, // Recognize all instances of CR LF ('\r\n') as a single line break
-});
+const typeQuery = `
+SELECT DISTINCT type FROM all_records;
 
-const uniqueRecordTypes = new Set();
+`;
 
-rl.on("line", (line) => {
-	try {
-		const record = JSON.parse(line); // Parse each line as JSON
-		uniqueRecordTypes.add(record.type); // Collect unique record types
-	} catch (err) {
-		console.error("Error parsing line:", err);
+db.all(typeQuery, (err, rows) => {
+	if (rows) {
+		rows.forEach((row) => {
+			console.log(row.type);
+		});
+	} else {
+		console.error(err);
 	}
-});
-
-rl.on("close", () => {
-	console.log(Array.from(uniqueRecordTypes)); // Log unique record types after processing all lines
 });

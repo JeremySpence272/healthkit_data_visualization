@@ -1,15 +1,15 @@
 class DailyHR {
-	constructor(day, max, min, avg) {
+	constructor(day, max, min, avg, restingAvg) {
 		this.date = day;
 		this.max = max;
 		this.min = min;
 		this.avg = avg;
-		this.restingAvg = null;
+		this.restingAvg = restingAvg;
 	}
 }
 
 const sqlite3 = require("sqlite3").verbose();
-const db = new sqlite3.Database("./heartrate.db", (err) => {
+const db = new sqlite3.Database("./data/database.db", (err) => {
 	if (err) {
 		console.error(err.message);
 	}
@@ -17,19 +17,30 @@ const db = new sqlite3.Database("./heartrate.db", (err) => {
 });
 
 const query = `
-SELECT SUBSTR(creationDate, 1, 10) AS date,
-       AVG(CAST(value AS FLOAT)) AS average,
-       MIN(CAST(value AS FLOAT)) AS minimum,
-       MAX(CAST(value AS FLOAT)) AS maximum
-FROM all_heart_rate_records
-GROUP BY SUBSTR(creationDate, 1, 10);
-
-`;
-
-const restingQuery = `
-SELECT SUBSTR(creationDate, 1, 10) AS date,
-       CAST(value AS FLOAT) AS val
-FROM resting_heart_rate_records
+SELECT SUBSTR(endDate, 1, 10) AS date,
+AVG(CASE 
+	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
+	THEN CAST(value AS FLOAT) 
+	ELSE 0 
+END) AS average,
+MIN(CASE 
+	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
+	THEN CAST(value AS FLOAT) 
+	ELSE 0 
+END) AS minimum,
+MAX(CASE 
+	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
+	THEN CAST(value AS FLOAT) 
+	ELSE 0 
+END) AS maximum,
+AVG(CASE 
+	WHEN type = 'HKQuantityTypeIdentifierRestingHeartRate' 
+	THEN CAST(value AS FLOAT) 
+	ELSE 0 
+END) AS restingAvg
+       
+FROM all_records
+GROUP BY SUBSTR(endDate, 1, 10);
 
 `;
 
@@ -47,36 +58,20 @@ function queryDatabase() {
 	});
 }
 
-function queryRestingDatabase() {
-	return new Promise((resolve, reject) => {
-		db.all(restingQuery, (err, rows) => {
-			if (err) {
-				console.error("Error executing resting query", err.message);
-				reject(err);
-			} else {
-				resolve(rows);
-			}
-		});
-	});
-}
-
 // Async function to use await
 async function getDays() {
 	try {
 		const rows = await queryDatabase();
 		const dailyArr = [];
 		rows.forEach((row) => {
-			let day = new DailyHR(row.date, row.maximum, row.minimum, row.average);
+			let day = new DailyHR(
+				row.date,
+				row.maximum,
+				row.minimum,
+				row.average,
+				row.restingAvg
+			);
 			dailyArr.push(day);
-		});
-
-		const restingRows = await queryRestingDatabase();
-		restingRows.forEach((row) => {
-			let dayObj = dailyArr.find((day) => day.date == row.date);
-			if (dayObj) {
-				console.log(`successfully adding resting data to ${row.date}`);
-				dayObj.restingAvg = row.val;
-			}
 		});
 
 		//initDailyTable();
@@ -101,7 +96,7 @@ getDays();
 
 function fillDailyTable(dailyData) {
 	db.run(
-		`CREATE TABLE IF NOT EXISTS daily_heart_rate_records (
+		`CREATE TABLE IF NOT EXISTS daily_heart (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT,
       max TEXT,
@@ -120,7 +115,7 @@ function fillDailyTable(dailyData) {
 
 	for (let record of dailyData) {
 		// Insert the record into the SQLite database
-		const insert = `INSERT INTO daily_heart_rate_records (date, max, min, avg, restingAvg)
+		const insert = `INSERT INTO daily_heart (date, max, min, avg, restingAvg)
     VALUES (?, ?, ?, ?, ?)`;
 
 		db.run(
