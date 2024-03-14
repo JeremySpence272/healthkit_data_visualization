@@ -17,30 +17,26 @@ const db = new sqlite3.Database("./data/database.db", (err) => {
 });
 
 const query = `
-SELECT SUBSTR(endDate, 1, 10) AS date,
+SELECT SUBSTR(creationDate, 1, 10) AS date,
 AVG(CASE 
 	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
 	THEN CAST(value AS FLOAT) 
-	ELSE 0 
 END) AS average,
 MIN(CASE 
 	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
 	THEN CAST(value AS FLOAT) 
-	ELSE 0 
 END) AS minimum,
 MAX(CASE 
 	WHEN type = 'HKQuantityTypeIdentifierHeartRate' 
 	THEN CAST(value AS FLOAT) 
-	ELSE 0 
 END) AS maximum,
 AVG(CASE 
 	WHEN type = 'HKQuantityTypeIdentifierRestingHeartRate' 
 	THEN CAST(value AS FLOAT) 
-	ELSE 0 
 END) AS restingAvg
        
 FROM all_records
-GROUP BY SUBSTR(endDate, 1, 10);
+GROUP BY SUBSTR(creationDate, 1, 10);
 
 `;
 

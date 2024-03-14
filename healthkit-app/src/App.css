@@ -1,38 +1,51 @@
 .App {
-  text-align: center;
+	height: 100%;
+	width: 100%;
+	padding: 30px 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	align-content: center;
+	gap: 2vw;
+	flex-wrap: wrap;
+	background-color: #f2f2f7; /* Adjusted to match Apple's background color */
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.datacard {
+	background-color: #ffffff;
+	border-radius: 1em; /* More pronounced rounded corners like in the Apple Card UI */
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+	padding: 1em;
+	border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border like Apple's style */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.wide,
+.half-width,
+.thin {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+		Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.wide {
+	width: 92%;
+	height: 20rem; /* For larger screens, consider using min-height */
+	overflow: hidden;
+	align-items: center;
+	justify-content: center;
 }
 
-.App-link {
-  color: #61dafb;
+.half-width {
+	width: calc(50% - 1vw); /* Adjusting width to account for the gap */
+	height: 20rem; /* For larger screens, consider using min-height */
+	justify-content: space-around;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.thin {
+	width: calc(40% - 1vw); /* Adjusting width to account for the gap */
+	height: 20rem; /* For larger screens, consider using min-height */
+	justify-content: space-around;
 }
