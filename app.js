@@ -4,8 +4,8 @@ const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
 
 const db = new sqlite3.Database(
-	"./data/database.db",
-	sqlite3.OPEN_READWRITE,
+	"./data/daily_database.db",
+	sqlite3.OPEN_READONLY,
 	(err) => {
 		if (err) {
 			console.error(err.message);
@@ -17,7 +17,7 @@ const db = new sqlite3.Database(
 app.use(cors()); // Enables CORS for your frontend
 
 const weightQuery = `
-SELECT * FROM weight_log
+SELECT * FROM weight
 ORDER BY date ASC
 `;
 
@@ -31,13 +31,20 @@ app.get("/data/weight", (req, res) => {
 	});
 });
 
-const energyQuery = `
-SELECT * FROM daily_energy
-ORDER BY date ASC
-`;
-
 app.get("/data/energy", (req, res) => {
-	db.all(energyQuery, [], (err, rows) => {
+	const { start, end } = req.query;
+	let params = [];
+
+	let energyQuery = `SELECT * FROM energy`;
+
+	if (start && end) {
+		energyQuery += ` WHERE date >= ? AND date <= ?`;
+		params.push(start, end);
+	}
+
+	energyQuery += ` ORDER BY date ASC`;
+
+	db.all(energyQuery, params, (err, rows) => {
 		if (err) {
 			res.status(500).json({ error: err.message });
 			return;
@@ -47,7 +54,7 @@ app.get("/data/energy", (req, res) => {
 });
 
 const heartQuery = `
-SELECT * FROM daily_heart
+SELECT * FROM heart
 ORDER BY date ASC
 `;
 
@@ -61,7 +68,7 @@ app.get("/data/heart", (req, res) => {
 	});
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });

@@ -10,8 +10,6 @@ class DailyEnergy {
 	}
 }
 
-const fs = require("fs");
-const readline = require("readline");
 const sqlite3 = require("sqlite3").verbose();
 const db = new sqlite3.Database(
 	"./data/database.db",

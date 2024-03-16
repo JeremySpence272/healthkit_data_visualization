@@ -1,24 +1,22 @@
 import React from "react";
-import {
-	EnergyChartComponent,
-	WeightChartComponent,
-	HeartChartComponent,
-} from "./dataComponents";
+import { EnergyDashboard } from "./components/dashboards/energyDashboard";
+
+// import { WeightChartComponent } from "./components/charts/weightChart";
+// import { HeartChartComponent } from "./components/charts/heartChart";
 
 import "./App.css";
 
 function App() {
 	return (
 		<div className="App">
-			<div className="datacard wide">
-				<EnergyChartComponent />
-			</div>
-			<div className="datacard wide">
+			<EnergyDashboard />
+
+			{/* <div className="card chart">
 				<WeightChartComponent />
 			</div>
-			<div className="datacard wide">
+			<div className="card chart">
 				<HeartChartComponent />
-			</div>
+			</div> */}
 		</div>
 	);
 }
