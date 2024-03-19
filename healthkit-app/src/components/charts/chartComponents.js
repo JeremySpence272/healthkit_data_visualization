@@ -23,11 +23,26 @@ ChartJS.register(
 	LineElement
 );
 
-const LineChartCard = ({ data, options }) => {
+const LineChartCard = ({ data }) => {
+	const options = {
+		maintainAspectRatio: false,
+		scales: {
+			x: {
+				display: true, //set false to remove ticks on x-axis
+			},
+
+			// this will set top and bottom limit
+			// y: {
+			// 	min: 165,
+			// 	max: 190,
+			// },
+		},
+	};
 	return <Line data={data} width={"100%"} options={options} />;
 };
 
-const BarChartCard = ({ data, options }) => {
+const BarChartCard = ({ data }) => {
+	const options = { maintainAspectRatio: false };
 	return <Bar data={data} width={"100%"} options={options} />;
 };
 

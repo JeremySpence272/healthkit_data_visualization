@@ -1,96 +1,116 @@
 import React, { useState } from "react";
 
 const EnergyControls = ({ onControlChange }) => {
-	const [localStartDate, setLocalStartDate] = useState("");
-	const [localEndDate, setLocalEndDate] = useState("");
-	const [includeTotal, setIncludeTotal] = useState(true);
-	const [includeActive, setIncludeActive] = useState(true);
-	const [includeBasal, setIncludeBasal] = useState(true);
-	const [chartType, setChartType] = useState("line");
+	const [period, setPeriod] = useState("999999");
+	const [dataType, setDataType] = useState("total");
+	const [interval, setInterval] = useState("daily");
+	const [compare, setCompare] = useState(false);
+	// THESE SHOULD ALL BE SET TO ONE VARIABLE
 
 	const handleSubmit = (e) => {
 		e.preventDefault(); // Prevent form submission from refreshing the page
-		onControlChange(
-			localStartDate,
-			localEndDate,
-			includeTotal,
-			includeActive,
-			includeBasal,
-			chartType
-		);
+		onControlChange(period, dataType, interval, compare);
 	};
 	return (
 		<form onSubmit={handleSubmit}>
-			<div className="date-picker">
+			<div className="control date-dropdown">
 				<label>
-					{" "}
-					Start Date
-					<input
-						type="date"
-						value={localStartDate}
-						onChange={(e) => setLocalStartDate(e.target.value)}
-					/>
-				</label>
-
-				<label>
-					End Date
-					<input
-						type="date"
-						value={localEndDate}
-						onChange={(e) => setLocalEndDate(e.target.value)}
-					/>
+					Select Period:
+					<select
+						id="dropdown"
+						value={period}
+						onChange={(e) => setPeriod(e.target.value)}
+					>
+						<option value="999999">All Time</option>
+						<option value="7">Last Week</option>
+						<option value="30">Last Month</option>
+						<option value="90">Last 90 Days</option>
+						<option value="180">Last 6 Months</option>
+						<option value="365">Last Year</option>
+					</select>
 				</label>
 			</div>
-			<div className="checkboxes">
+
+			<div className="control data-type">
 				<label>
 					<input
-						type="checkbox"
-						checked={includeTotal === true}
-						onChange={(e) => setIncludeTotal(e.target.checked)}
+						type="radio"
+						name="dataType"
+						value="total"
+						checked={dataType === "total"}
+						onChange={(e) => setDataType(e.target.value)}
 					/>
 					Total
 				</label>
 				<label>
 					<input
-						type="checkbox"
-						checked={includeActive === true}
-						onChange={(e) => setIncludeActive(e.target.checked)}
+						type="radio"
+						name="dataType"
+						value="active"
+						checked={dataType === "active"}
+						onChange={(e) => setDataType(e.target.value)}
 					/>
 					Active
 				</label>
 				<label>
 					<input
-						type="checkbox"
-						checked={includeBasal === true}
-						onChange={(e) => setIncludeBasal(e.target.checked)}
+						type="radio"
+						name="dataType"
+						value="basal"
+						checked={dataType === "basal"}
+						onChange={(e) => setDataType(e.target.value)}
 					/>
 					Basal
 				</label>
 			</div>
-			<div className="radio-buttons">
+			<div className="control select-interval">
 				<label>
 					<input
 						type="radio"
-						name="chartType"
-						value="line"
-						checked={chartType === "line"}
-						onChange={(e) => setChartType(e.target.value)}
+						name="interval"
+						value="daily"
+						checked={interval === "daily"}
+						onChange={(e) => setInterval(e.target.value)}
 					/>
-					Line Chart
+					Daily
 				</label>
 				<label>
 					<input
 						type="radio"
-						name="chartType"
-						value="bar"
-						checked={chartType === "bar"}
-						onChange={(e) => setChartType(e.target.value)}
+						name="interval"
+						value="weekly"
+						checked={interval === "weekly"}
+						onChange={(e) => setInterval(e.target.value)}
 					/>
-					Bar Chart
+					Weekly
+				</label>
+				<label>
+					<input
+						type="radio"
+						name="interval"
+						value="monthly"
+						checked={interval === "monthly"}
+						onChange={(e) => setInterval(e.target.value)}
+					/>
+					Monthly
 				</label>
 			</div>
-
-			<button type="submit">Go</button>
+			<div className="control compare-box">
+				<label>
+					<input
+						type="checkbox"
+						name="compare"
+						value="compare"
+						disabled={period === "999999"}
+						checked={compare}
+						onChange={(e) => setCompare(e.target.checked)}
+					/>
+					compare with previous period ?
+				</label>
+			</div>
+			<button className="submit-button" type="submit">
+				Go
+			</button>
 		</form>
 	);
 };

@@ -1,74 +1,80 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-// import { EnergyChartComponent } from "../charts/energyChart";
 import { EnergyControls } from "../controls/energyControls";
-import { LineChartCard, BarChartCard } from "../charts/chartComponents";
+import { LineChartCard } from "../charts/chartComponents";
+import { getChartData } from "../../helpers/chartSetup";
 
 const EnergyDashboard = () => {
 	const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
-	const [includeData, setIncludeData] = useState({
-		includeTotal: true,
-		includeActive: true,
-		includeBasal: true,
-	});
+	const [dataType, setDataType] = useState("total");
+	const [interval, setInterval] = useState("daily");
+
 	const [chartData, setChartData] = useState({ labels: [], datasets: [] });
-	const [chartType, setChartType] = useState("line");
+	const [compareDateRange, setCompareDateRange] = useState({
+		compareStartDate: "",
+		compareEndDate: "",
+	});
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
+				console.log(interval);
 				let response;
-				if (dateRange.startDate && dateRange.endDate) {
-					response = await axios.get("http://localhost:5000/data/energy", {
+				let comparedResponse;
+				let data = [];
+				if (
+					compareDateRange.compareStartDate &&
+					compareDateRange.compareEndDate
+				) {
+					let r = await axios.get("http://localhost:5000/data/energy", {
 						params: {
 							start: dateRange.startDate,
 							end: dateRange.endDate,
+							compareStart: compareDateRange.compareStartDate,
+							compareEnd: compareDateRange.compareEndDate,
+							interval: interval,
 						},
 					});
-				} else {
-					response = await axios.get("http://localhost:5000/data/energy");
-				}
 
-				// Process your response and update chart data
-				const labels = response.data.map((item) => item.date);
-				let dataToInclude = [];
-				if (includeData.includeTotal) {
-					const totalEnergyData = response.data.map((item) => item.total);
-					const totalData = {
-						label: "Total Energy Burned (kCal)",
-						data: totalEnergyData,
-						backgroundColor: "rgba(60, 179, 113, 0.2)",
-						borderColor: "rgba(60, 179, 113, 1)",
-						borderWidth: 1,
-					};
-					dataToInclude.push(totalData);
-				}
-				if (includeData.includeActive) {
-					const activeEnergyData = response.data.map((item) => item.active);
-					const activeData = {
-						label: "Active Energy Burned (kCal)",
-						data: activeEnergyData,
-						backgroundColor: "rgb(255, 99, 71, 0.2)",
-						borderColor: "rgb(255, 99, 71, 1)",
-						borderWidth: 1,
-					};
-					dataToInclude.push(activeData);
-				}
-				if (includeData.includeBasal) {
-					const basalEnergyData = response.data.map((item) => item.basal);
-					const basalData = {
-						label: "Basal Energy Burned (kCal)",
-						data: basalEnergyData,
-						backgroundColor: "rgba(70, 130, 180, 0.2)",
-						borderColor: "rgba(70, 130, 180, 1)",
-						borderWidth: 1,
-					};
-					dataToInclude.push(basalData);
+					console.log(r);
+
+					response = r.data.primaryData;
+					comparedResponse = r.data.compareData;
+
+					// MAKE DATA SAME LENGTH IF COMPARE NOT LONG ENOUGH
+					const lengthDifference = response.length - comparedResponse.length;
+					let updatedComparedResponseData;
+					if (lengthDifference > 0) {
+						updatedComparedResponseData = Array(lengthDifference)
+							.fill(null)
+							.concat(comparedResponse);
+					} else {
+						updatedComparedResponseData = comparedResponse;
+					}
+
+					data.push(getChartData(response, dataType, false));
+					data.push(getChartData(updatedComparedResponseData, dataType, true));
+				} else {
+					if (dateRange.startDate && dateRange.endDate) {
+						let r = await axios.get("http://localhost:5000/data/energy", {
+							params: {
+								start: dateRange.startDate,
+								end: dateRange.endDate,
+								interval: interval,
+							},
+						});
+						response = r.data.primaryData;
+					} else {
+						let r = await axios.get("http://localhost:5000/data/energy");
+						response = r.data.primaryData;
+					}
+
+					data.push(getChartData(response, dataType, false));
 				}
 
 				setChartData({
-					labels: labels,
-					datasets: dataToInclude,
+					labels: response.map((item) => item.date),
+					datasets: data,
 				});
 			} catch (error) {
 				console.error("Error fetching data:", error);
@@ -76,35 +82,49 @@ const EnergyDashboard = () => {
 		};
 
 		fetchData();
-	}, [dateRange, includeData]);
+	}, [dateRange, dataType, compareDateRange, interval]);
 
-	const handleControlChange = (
-		startDate,
-		endDate,
-		includeTotal,
-		includeActive,
-		includeBasal,
-		updatedChartType
-	) => {
-		setDateRange({ startDate, endDate });
-		setIncludeData({ includeTotal, includeActive, includeBasal });
-		setChartType(updatedChartType);
+	const handleControlChange = (period, dataType, interval, compare) => {
+		const today = new Date(2024, 2, 10); //SET SPECIFIC DATE FOR NOW BECAUSE DATA NOT UPDATED
+		const endDate = today.toISOString().split("T")[0];
+		const startDate = new Date(today.setDate(today.getDate() - period))
+			.toISOString()
+			.split("T")[0];
+
+		setDateRange({
+			startDate: startDate,
+			endDate: endDate,
+		});
+		setDataType(dataType);
+		setInterval(interval);
+
+		if (compare) {
+			const comparePeriod = parseInt(period) * 2;
+
+			const compareEndDate = startDate;
+
+			const compareStartDate = new Date(
+				today.setDate(today.getDate() - parseInt(comparePeriod))
+			)
+				.toISOString()
+				.split("T")[0];
+
+			setCompareDateRange({
+				compareStartDate: compareStartDate,
+				compareEndDate: compareEndDate,
+			});
+		} else {
+			setCompareDateRange({
+				compareStartDate: "",
+				compareEndDate: "",
+			});
+		}
 	};
 
 	return (
 		<div className="dashboard">
 			<div className="card chart">
-				{chartType === "line" ? (
-					<LineChartCard
-						data={chartData}
-						options={{ maintainAspectRatio: false }}
-					/>
-				) : (
-					<BarChartCard
-						data={chartData}
-						options={{ maintainAspectRatio: false }}
-					/>
-				)}
+				<LineChartCard data={chartData} />
 			</div>
 			<div className="card controls">
 				<EnergyControls onControlChange={handleControlChange} />
