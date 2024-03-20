@@ -27,15 +27,17 @@ const LineChartCard = ({ data }) => {
 	const options = {
 		maintainAspectRatio: false,
 		scales: {
-			x: {
-				display: true, //set false to remove ticks on x-axis
-			},
+			y: {
+				display: true,
+				afterDataLimits: (axis) => {
+					const padding = 0.3;
+					const dataRange = axis.max - axis.min;
+					const expandedRange = dataRange * padding;
 
-			// this will set top and bottom limit
-			// y: {
-			// 	min: 165,
-			// 	max: 190,
-			// },
+					axis.max += expandedRange;
+					axis.min -= expandedRange;
+				},
+			},
 		},
 	};
 	return <Line data={data} width={"100%"} options={options} />;

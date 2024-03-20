@@ -2,134 +2,88 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
-// const dateConverter = require("./helpers/dateConverter");
 
 const db = new sqlite3.Database(
 	"./data/daily_database.db",
-	sqlite3.OPEN_READONLY,
-	(err) => {
-		if (err) {
-			console.error(err.message);
-		}
-		console.log("Connected to the database.");
-	}
+	sqlite3.OPEN_READONLY
 );
 
-app.use(cors()); // Enables CORS for your frontend
-
+app.use(cors());
 //////////////////////////////////////////////////////////////
 
-const weightQuery = `
-SELECT * FROM weight
-ORDER BY date ASC
-`;
-
-app.get("/data/weight", (req, res) => {
-	db.all(weightQuery, [], (err, rows) => {
-		if (err) {
-			res.status(500).json({ error: err.message });
-			return;
-		}
-		res.json(rows);
-	});
-});
-
-const heartQuery = `
-SELECT * FROM heart
-ORDER BY date ASC
-`;
-
-app.get("/data/heart", (req, res) => {
-	db.all(heartQuery, [], (err, rows) => {
-		if (err) {
-			res.status(500).json({ error: err.message });
-			return;
-		}
-		res.json(rows);
-	});
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-});
-
-app.get("/data/energy", (req, res) => {
-	//PARAMS.. PERIOD | TYPE | COMPARE | INTERVAL
-
-	const { start, end, compareStart, compareEnd, interval } = req.query;
+// Common function to fetch data and process it
+function fetchDataAndRespond(tableName, groupByFields, res, reqQuery) {
+	const { start, end, compareStart, compareEnd, interval } = reqQuery;
 	let params = [];
-	let groupBy;
+	let groupBy = "strftime('%Y-%m-%d', date)";
 
-	// Determine the SQL GROUP BY clause based on the interval
 	switch (interval) {
 		case "weekly":
-			groupBy = "strftime('%Y-W%W', date)"; // Group by ISO week
+			groupBy = "strftime('%Y-W%W', date)";
 			break;
 		case "monthly":
-			groupBy = "strftime('%Y-%m', date)"; // Group by month
-			break;
-		default:
-			groupBy = "strftime('%Y-%m-%d', date)"; // Group by day
+			groupBy = "strftime('%Y-%m', date)";
 			break;
 	}
 
-	let energyQuery = `
-		SELECT 
-    	${groupBy} AS date, 
-    	ROUND(AVG(total)) as total, 
-    	ROUND(AVG(active)) as active, 
-    	ROUND(AVG(basal)) as basal
-		FROM energy
-
+	let query = `
+        SELECT 
+        ${groupBy} AS date, 
+        ${groupByFields}
+        FROM ${tableName}
     `;
 
 	if (start && end) {
-		energyQuery += ` WHERE date >= ? AND date <= ?`;
+		query += ` WHERE date >= ? AND date <= ?`;
 		params.push(start, end);
 	}
 
-	energyQuery += ` GROUP BY ${groupBy} ORDER BY date ASC`;
+	query += ` GROUP BY ${groupBy} ORDER BY date ASC`;
 
-	let response = {};
-
-	db.all(energyQuery, params, (err, rows) => {
-		if (err) {
-			res.status(500).json({ error: err.message });
-			return;
-		}
-		rows.forEach((row) => {
-			if (interval === "weekly") {
-				row.date = getWeeklyLabel(row.date);
-			} else if (interval === "monthly") {
-				row.date = getMonthlyLabel(row.date);
-			}
-			response.primaryData = rows;
-		});
-		if (compareStart && compareEnd) {
-			console.log("we are comparing");
-			response.primaryData = rows;
-			const compareParams = [compareStart, compareEnd];
-			db.all(energyQuery, compareParams, (compareErr, compareRows) => {
-				if (compareErr) {
-					res.status(500).json({ error: err.message });
-					return;
-				}
-				compareRows.forEach((row) => {
-					if (interval === "weekly") {
-						row.date = getWeeklyLabel(row.date);
-					} else if (interval === "monthly") {
-						row.date = getMonthlyLabel(row.date);
-					}
-				});
-
-				response.compareData = compareRows;
-				res.json(response);
+	const fetchData = (q, p) =>
+		new Promise((resolve, reject) => {
+			db.all(q, p, (err, rows) => {
+				if (err) reject(err);
+				else
+					resolve(
+						rows.map((row) => ({
+							...row,
+							date:
+								interval === "weekly"
+									? getWeeklyLabel(row.date)
+									: interval === "monthly"
+									? getMonthlyLabel(row.date)
+									: row.date,
+						}))
+					);
 			});
-		} else {
-			res.json(response);
-		}
-	});
+		});
+
+	Promise.all([
+		fetchData(query, params),
+		compareStart && compareEnd
+			? fetchData(query, [compareStart, compareEnd])
+			: Promise.resolve(null),
+	])
+		.then(([primaryData, compareData]) =>
+			res.json({ primaryData, compareData })
+		)
+		.catch((err) => res.status(500).json({ error: err.message }));
+}
+
+app.get("/data/energy", (req, res) => {
+	const groupByFields = `ROUND(AVG(total)) as total, ROUND(AVG(active)) as active, ROUND(AVG(basal)) as basal`;
+	fetchDataAndRespond("energy", groupByFields, res, req.query);
+});
+
+app.get("/data/heart", (req, res) => {
+	const groupByFields = `ROUND(AVG(avg)) as avg, ROUND(AVG(max)) as max, ROUND(AVG(min)) as min, ROUND(AVG(restingAvg)) as restingAvg`;
+	fetchDataAndRespond("heart", groupByFields, res, req.query);
+});
+
+app.get("/data/weight", (req, res) => {
+	const groupByFields = `ROUND(AVG(weight)) as weight`;
+	fetchDataAndRespond("weight", groupByFields, res, req.query);
 });
 
 // HELPER FUNCTIONS
@@ -167,3 +121,10 @@ function getWeeklyLabel(date) {
 
 	return endDate.toISOString().split("T")[0]; // Return only the end date in YYYY-MM-DD format
 }
+
+///////////////////////////////////////////////////
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+	console.log(`Server running on port ${PORT}`);
+});

@@ -60,23 +60,8 @@ form {
 	justify-content: center;
 }
 
-form .checkboxes {
-	display: flex;
-	flex-direction: row;
-}
-
-form .date-picker {
-	display: flex;
-	flex-direction: row;
-}
-
 label {
 	padding: 5px;
-}
-
-form .date-picker-compare {
-	display: flex;
-	flex-direction: column;
 }
 
 button.submit-button {

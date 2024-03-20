@@ -1,22 +1,36 @@
 import React from "react";
-import { EnergyDashboard } from "./components/dashboards/energyDashboard";
-
-// import { WeightChartComponent } from "./components/charts/weightChart";
-// import { HeartChartComponent } from "./components/charts/heartChart";
 
 import "./App.css";
+import { Dashboard } from "./components/dashboard";
+
+const chartInfo = {
+	energy: {
+		endpointURL: "http://localhost:5000/data/energy",
+		dataTypeOptions: ["total", "active", "basal"],
+	},
+	heart: {
+		endpointURL: "http://localhost:5000/data/heart",
+		dataTypeOptions: ["avg", "max", "min", "restingAvg"],
+	},
+	weight: {
+		endpointURL: "http://localhost:5000/data/weight",
+		dataTypeOptions: ["weight"],
+	},
+};
 
 function App() {
 	return (
 		<div className="App">
-			<EnergyDashboard />
-
-			{/* <div className="card chart">
-				<WeightChartComponent />
-			</div>
-			<div className="card chart">
-				<HeartChartComponent />
-			</div> */}
+			{Object.keys(chartInfo).map((chartKey) => {
+				console.log(chartInfo[chartKey]);
+				return (
+					<Dashboard
+						key={chartKey}
+						endpointURL={chartInfo[chartKey].endpointURL}
+						dataTypeOptions={chartInfo[chartKey].dataTypeOptions}
+					/>
+				);
+			})}
 		</div>
 	);
 }

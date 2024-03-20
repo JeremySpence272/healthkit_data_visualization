@@ -1,50 +1,38 @@
 const getChartData = (response, type, isCompare) => {
-	const green = {
-		backgroundColor: "rgba(60, 179, 113, 0.2)",
-		borderColor: "rgba(60, 179, 113, 1)",
-	};
-	const red = {
-		backgroundColor: "rgba(255, 99, 71, 0.2)",
-		borderColor: "rgba(255, 99, 71, 1)",
-	};
-
-	let outputData = {
-		label: !isCompare
-			? "Total Energy Burned (kCal)"
-			: "Total Energy Burned (Compared) (kCal)",
-		data: [],
-		backgroundColor: !isCompare ? green.backgroundColor : red.backgroundColor,
-		borderColor: !isCompare ? green.borderColor : red.borderColor,
-		borderWidth: 1,
+	const colors = {
+		blue: {
+			backgroundColor: "rgba(000, 122, 255, 0.2)",
+			borderColor: "rgba(000, 122, 255, 1)",
+		},
+		red: {
+			backgroundColor: "rgba(255, 99, 71, 0.2)",
+			borderColor: "rgba(255, 99, 71, 1)",
+		},
 	};
 
-	switch (type) {
-		case "basal":
-			outputData.label = !isCompare
-				? "Basal Energy Burned (kCal)"
-				: "Basal Energy Burned (Compared) (kCal)";
-			outputData.data = response.map((item) => (item ? item.basal : null));
-			outputData.backgroundColor = !isCompare
-				? green.backgroundColor
-				: red.backgroundColor;
-			outputData.borderColor = !isCompare ? green.borderColor : red.borderColor;
-			break;
-		case "active":
-			outputData.label = !isCompare
-				? "Active Energy Burned (kCal)"
-				: "Active Energy Burned (Compared) (kCal)";
-			outputData.data = response.map((item) => (item ? item.active : null));
-			outputData.backgroundColor = !isCompare
-				? green.backgroundColor
-				: red.backgroundColor;
-			outputData.borderColor = !isCompare ? green.borderColor : red.borderColor;
-			break;
-		default:
-			outputData.data = response.map((item) => (item ? item.total : null));
-			break;
-	}
+	const { backgroundColor, borderColor } = isCompare ? colors.red : colors.blue;
 
-	return outputData;
+	const typeMap = {
+		basal: "Basal Energy Burned (kCal)",
+		active: "Active Energy Burned (kCal)",
+		total: "Total Energy Burned (kCal)",
+		avg: "Average HR (BPM)",
+		max: "Maximum HR (BPM)",
+		min: "Minimum HR (BPM)",
+		restingAvg: "Average Resting HR (BPM)",
+		weight: "Weight (LBS)",
+	};
+
+	const labelPrefix = isCompare ? " (Compared)" : "";
+	const dataKey = typeMap[type] ? type : "total";
+
+	return {
+		label: typeMap[dataKey] + labelPrefix,
+		data: response.map((item) => (item ? item[dataKey] : null)),
+		backgroundColor,
+		borderColor,
+		borderWidth: 2,
+	};
 };
 
 export { getChartData };
