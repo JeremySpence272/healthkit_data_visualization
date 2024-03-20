@@ -31,7 +31,7 @@ const getChartData = (response, type, isCompare) => {
 		data: response.map((item) => (item ? item[dataKey] : null)),
 		backgroundColor,
 		borderColor,
-		borderWidth: 2,
+		borderWidth: 1.5,
 	};
 };
 
